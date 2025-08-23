@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.nusaif.paysync_mobileapp"
     },
     "web": {
       "bundler": "metro",
@@ -33,11 +34,16 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-        
       ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6454ce98-22cd-4225-9046-0145a3070c3d"
+      }
     }
   }
 }

@@ -1,11 +1,53 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const UserDashboard = () => {
   const router = useRouter();
+  const [user, setUser] = useState(null);
+
+ useEffect(() => {
+  const fetchUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        
+        
+
+        const userId = parsedUser.userId;
+        
+        //const userId = "L00017";
+
+        // 🟡 Fetch full user data from backend using userId
+        const response = await fetch(`http://192.168.144.151:5000/clientsAPI/${userId}`);
+        const fullUserData = await response.json();
+        console.log('Fetched user from backend:', fullUserData);
+
+        setUser(fullUserData.data); // Set full backend data
+      } else {
+        console.log('No user found in AsyncStorage');
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
+  };
+
+  fetchUser();
+}, []);
+
+  
+
+  if (!user) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading user data...</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -21,8 +63,10 @@ const UserDashboard = () => {
             style={styles.avatar}
           />
           <View>
-            <Text style={styles.welcomeText}>Hello,</Text>
-            <Text style={styles.userName}>Jaya Kumar</Text>
+            {/* <Text style={styles.welcomeText}>Hello,</Text> */}
+            <Text style={styles.userName}>{user.personalInfo.fullName}</Text>
+            <Text style={styles.email}>{user.personalInfo.email}</Text>
+             {/* <Text style={styles.rawBox}>Raw Data: {JSON.stringify(user)}</Text> */}
           </View>
         </View>
       </View>
@@ -64,7 +108,7 @@ const UserDashboard = () => {
           </TouchableOpacity>
         </View>
 
-        {[
+        {[ 
           { type: 'EMI', status: 'Due', amount: 'Rs 15000.00', date: '15-May-2025' },
           { type: 'EMI', status: 'Due', amount: 'Rs 15000.00', date: '15-Apr-2025' },
           { type: 'Loan', status: 'Approved', amount: 'Rs 150000.00', date: '15-Mar-2025' },
@@ -99,6 +143,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
     flexGrow: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#666',
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
@@ -109,6 +162,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 16,
+    marginTop:20,
   },
   avatar: {
     width: 50,
@@ -124,6 +178,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  email: {
+    fontSize: 14,
+    color: '#777',
   },
   loanCard: {
     borderRadius: 12,
@@ -258,6 +316,15 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#28a745',
     fontWeight: 'bold',
+  },
+  rawBox: {
+    backgroundColor: '#f4f4f4',
+    padding: 12,
+    borderRadius: 10,
+    marginTop: 16,
+    fontSize: 14,
+    color: '#333',
+    fontFamily: 'Courier', // or 'Courier New' for monospace
   },
 });
 
