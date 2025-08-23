@@ -1,6 +1,11 @@
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
+  Dimensions,
   ImageBackground,
   KeyboardAvoidingView,
   Platform,
@@ -11,11 +16,9 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Dimensions,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import API from '../services/api'; // ✅ Axios instance
 
 const { width } = Dimensions.get('window');
 
@@ -31,64 +34,48 @@ const LoginScreen = () => {
   };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
+    if (!trimmedEmail || !trimmedPassword) {
       Alert.alert('Error', 'Please enter both email and password');
       return;
     }
 
     setIsLoading(true);
+    //console.log("Sending login data:", { email: trimmedEmail, password: trimmedPassword });
 
     try {
-      const response = await fetch('http://192.168.1.100:5000/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const response = await API.post('/clientsAPI/login', {
+        email: trimmedEmail,
+        password: trimmedPassword,
       });
 
-      const data = await response.json();
+      if (response.data) {
+        Alert.alert('Login Successful', `Welcome ${response.data.user.name}`);
+        //
+         const { user, token } = response.data;
 
-      if (response.ok && data.success) {
-        Alert.alert('Login Successful', `Welcome ${data.user.name}`);
+          // Save to AsyncStorage
+          await AsyncStorage.setItem('user', JSON.stringify(user));
+          await AsyncStorage.setItem('token', token);
+
+        //
         router.replace('/User_Dashboard');
       } else {
         Alert.alert(
           'User not found',
-          'Do you want to create a new account?',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Yes', onPress: () => createNewUser() },
-          ]
+          'Please create a new account.',
+          [{ text: 'Go to Register', onPress: () => router.push('/create_user') }]
         );
       }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Something went wrong.');
+    } catch (error) {
+      console.error("API error:", error);
+      const errorMessage =
+        error.response?.data?.message || 'Something went wrong during login.';
+      Alert.alert('Error', errorMessage);
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const createNewUser = async () => {
-    const name = 'New User'; // You can later prompt the user for this
-
-    try {
-      const response = await fetch('http://192.168.1.100:5000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        Alert.alert('Account Created', `Welcome ${data.user.name}`);
-        router.replace('/User_Dashboard');
-      } else {
-        Alert.alert('Registration Failed', data.message || 'Could not create user');
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Something went wrong.');
     }
   };
 
@@ -219,8 +206,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   logoText: { fontSize: 18, fontWeight: 'bold', color: '#fff' },
-  welcomeText: { fontSize: 22, fontWeight: 'bold', color: '#000', marginBottom: 6, textAlign: 'center' },
-  signInText: { fontSize: 16, color: '#666', marginBottom: 24, textAlign: 'center' },
+  welcomeText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  signInText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
   inputLabel: { fontSize: 14, color: '#666', marginBottom: 8, fontWeight: '500' },
   inputContainer: { marginBottom: 16, width: '100%' },
   input: {
@@ -257,8 +255,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: '100%',
   },
-  loginButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold', textTransform: 'uppercase' },
-  createAccountContainer: { flexDirection: 'row', justifyContent: 'center', width: '100%' },
+  loginButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  createAccountContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    width: '100%',
+  },
   createAccountText: { fontSize: 14, color: '#666' },
   createAccountLink: { fontSize: 14, color: '#00008B', fontWeight: 'bold' },
 });
